@@ -11,8 +11,18 @@ class Hero(models.Model):
 
     name = models.CharField(max_length=50)
     description = models.TextField()
-    # i dont think it's good practice to use lambda here
-    picture = models.ImageField()
-    type = models.CharField(choices=HERO_TYPE_CHOICES, default='STR')
-    role = models.ForeignKey('user_management.Role', on_delete=models.CASCADE)
-    contr_picks = models.ForeignKey('self', on_delete=models.CASCADE)
+    picture = models.ImageField(upload_to='heroes')
+    type = models.CharField(max_length=3, choices=HERO_TYPE_CHOICES, default='STR')
+    role = models.ManyToManyField('user_management.Role', related_name='heroes')
+
+    def __str__(self):
+        return self.name
+
+
+# that model contains links to hero models against which our hero is weak
+class ContrPicks(models.Model):
+    hero = models.OneToOneField(Hero, on_delete=models.CASCADE, related_name='contr_picks')
+    contr_picks_list = models.ManyToManyField(Hero, related_name='contr_pick_for', blank=True, null=True)
+
+    def __str__(self):
+        return self.hero.name
