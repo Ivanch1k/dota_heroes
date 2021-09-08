@@ -16,6 +16,9 @@ class Role(models.Model):
 
 
 class CommonUser(User):
-    photo = models.ImageField(upload_to=user_directory_path)
+    photo = models.ImageField(upload_to=user_directory_path, blank=True, null=True)
     # user_role = models.OneToOneField(Role, on_delete=models.CASCADE)
     user_roles = models.ManyToManyField(Role, related_name='users')
+    confirmation_token = models.CharField(max_length=64, null=True, blank=True)
+    password_reset_token = models.CharField(max_length=64, null=True, blank=True)
+    is_confirmed = models.BooleanField(default=False)

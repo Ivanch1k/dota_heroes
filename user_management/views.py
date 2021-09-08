@@ -1,25 +1,31 @@
 from django.http import HttpResponse
 from rest_framework.decorators import permission_classes, api_view
 from rest_framework.viewsets import ModelViewSet
+import dota_heroes.settings
 from user_management.models import Role, CommonUser
 from user_management.serializers import RoleSerializer, CommonUserSerializer
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.status import HTTP_400_BAD_REQUEST
 from user_management.permissions import IsAdminOrReadOnly
-from django.template import Context
-from django.template.loader import get_template
-from django.core.mail import send_mail, EmailMultiAlternatives
-from django.contrib import messages
+from django.core.mail import send_mail
 from rest_framework.response import Response
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_200_OK
+from user_management.tasks import send_simple_mail, send_email_confirmation, send_password_reset
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.request import QueryDict
+from datetime import datetime
+import hashlib
+
+
+# test
 # Create your views here.
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def hello(request):
-    return HttpResponse('hi:)')
+    return Response('hi:)')
 
 
+# test
 @api_view(['GET'])
 def mail_test(request):
     send_mail(
@@ -32,6 +38,71 @@ def mail_test(request):
     return HttpResponse('Catch it :)')
 
 
+# test
+@api_view(['GET'])
+def celery_mail_test(request):
+    send_simple_mail.delay('token')
+    return HttpResponse('Try to catch this one :)')
+
+
+@api_view(['GET'])
+def mail_confirmation_view(request):
+    token = request.GET['token']
+    try:
+        user = CommonUser.objects.get(confirmation_token=token)
+        user.is_confirmed = True
+        user.is_active = True
+        user.save()
+    except ObjectDoesNotExist:
+        return Response('Your token is not valid', status=HTTP_400_BAD_REQUEST)
+
+    refresh = RefreshToken.for_user(user)
+
+    return Response({
+        'refresh': str(refresh),
+        'access': str(refresh.access_token)
+    })
+
+
+# to avoid duplication. Mb should be placed elsewhere
+def create_token(email):
+    hash_token = hashlib.sha256()
+    hash_token.update(bytes(email, 'utf-8'))
+    hash_token.update(bytes(str(datetime.now()), 'utf-8'))
+    hash_token.update(dota_heroes.settings.SECRET_TOKEN_KEY)
+    return hash_token.hexdigest()
+
+
+@api_view(['POST'])
+def forgot_password(request):
+    email = request.data['email']
+    try:
+        user = CommonUser.objects.get(email=email)
+    except ObjectDoesNotExist:
+        return Response("User with given email doesnt exist", status=HTTP_400_BAD_REQUEST)
+
+    token = create_token(email)
+    user.password_reset_token = token
+    user.save()
+
+    send_password_reset.delay(email, token)
+    return Response('Check your email.')
+
+
+@api_view(['POST'])
+def reset_password(request):
+    new_password = request.data['new_password']
+    token = request.data['token']
+    try:
+        user = CommonUser.objects.get(password_reset_token=token)
+        # mb password validation here ??
+        user.set_password(new_password)
+        user.save()
+    except ObjectDoesNotExist:
+        return Response('Token is not valid.', status=HTTP_400_BAD_REQUEST)
+    return Response(status=HTTP_200_OK)
+
+
 class RoleModelViewSet(ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     queryset = Role.objects.all()
@@ -39,6 +110,7 @@ class RoleModelViewSet(ModelViewSet):
 
 
 # mb change two viewSet by one, but try t replace some flow to not to check permissions for creating
+# problem is that permission applied to entire class, but unauthorized users must have access to create method.
 class UserModelViewSet(ModelViewSet):
     # mb it would be better if user can change only himself except admin user?? (to do)
     permission_classes = [IsAuthenticated]
@@ -51,24 +123,29 @@ class RegistrationUserModelViewSet(ModelViewSet):
     serializer_class = CommonUserSerializer
     queryset = CommonUser.objects.all()
     http_method_names = ['post']
-    
-    # to do
+
     def create(self, request, *args, **kwargs):
-        # validation here
-        serializer = CommonUserSerializer(data=dict(request.data))
-        # if not serializer.is_valid():
-        #     print(serializer.errors)
-        #     return Response(serializer.error_messages, status=HTTP_400_BAD_REQUEST)
-        print(serializer.is_valid())
-        from_email = 'ivan.hmyria@gmail.com'
+        # this block here because if we receive request, that has json in content-type header drf doesn't envelop
+        # request.data in QueryDict, and as result serializer.data crashes because cant find groups and user_permissions
+        # attributes. But if we receive form-data in headers then request.data will be immutable QueryDict.
+        # Also if QueryDict received user created with is_active = False, and when dict - True.
+        if not isinstance(request.data, QueryDict):
+            request.data['groups'] = []
+            request.data['user_permissions'] = []
 
-        html_template = get_template('email_confirm_signup.html')
-        email = serializer.data['email']
-        username = serializer.data['username']
-        html_content = html_template.render({'username': username})
-        msg = EmailMultiAlternatives('Email confirmation', html_content, from_email, email)
-        msg.attach_alternative(html_content, "text/html")
-        msg.send()
+        serializer = CommonUserSerializer(data=request.data)
+        if not serializer.is_valid():
+            print(type(request.data))
+            return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
 
-        messages.success(request, f'Your account has been created!')
-        return Response('Imagine redirect')
+        print(type(request.data))
+
+        user = serializer.create(serializer.data)
+
+        token = create_token(user.email)
+
+        user.confirmation_token = token
+        user.save()
+
+        send_email_confirmation.delay(serializer.data, token)
+        return Response('Please confirm your email. We send mail for you.')

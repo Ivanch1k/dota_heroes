@@ -12,3 +12,9 @@ class CommonUserSerializer(ModelSerializer):
     class Meta:
         model = CommonUser
         fields = '__all__'
+
+    def create(self, validated_data):
+        new_user = ModelSerializer.create(self, validated_data)
+        new_user.set_password(validated_data['password'])
+        new_user.save()
+        return new_user
