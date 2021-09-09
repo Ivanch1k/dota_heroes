@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'heroes',
     'user_management',
     'rest_framework_simplejwt',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -59,7 +60,8 @@ MIDDLEWARE = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ]
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
 }
 
 
@@ -68,7 +70,9 @@ ROOT_URLCONF = 'dota_heroes.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'templates'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

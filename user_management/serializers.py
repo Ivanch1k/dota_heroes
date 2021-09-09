@@ -8,6 +8,14 @@ class RoleSerializer(ModelSerializer):
         fields = '__all__'
 
 
+class SafeUserSerializer(ModelSerializer):
+    class Meta:
+        model = CommonUser
+        exclude = ('password', 'confirmation_token', 'password_reset_token', )
+        read_only_fields = ('last_login', 'id', 'is_superuser', 'is_staff', 'is_confirmed',
+                            'is_active', 'date_joined', 'user_permissions', 'groups')
+
+
 class CommonUserSerializer(ModelSerializer):
     class Meta:
         model = CommonUser

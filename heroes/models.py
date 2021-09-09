@@ -20,6 +20,7 @@ class Hero(models.Model):
 
 
 # that model contains links to hero models against which our hero is weak
+# !model name shouldn't be plural!
 class ContrPicks(models.Model):
     hero = models.OneToOneField(Hero, on_delete=models.CASCADE, related_name='contr_picks')
     contr_picks_list = models.ManyToManyField(Hero, related_name='contr_pick_for', blank=True, null=True)

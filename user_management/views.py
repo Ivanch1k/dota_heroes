@@ -3,12 +3,12 @@ from rest_framework.decorators import permission_classes, api_view
 from rest_framework.viewsets import ModelViewSet
 import dota_heroes.settings
 from user_management.models import Role, CommonUser
-from user_management.serializers import RoleSerializer, CommonUserSerializer
+from user_management.serializers import RoleSerializer, CommonUserSerializer, SafeUserSerializer
 from rest_framework.permissions import IsAuthenticated
-from user_management.permissions import IsAdminOrReadOnly
+from user_management.permissions import IsAdminOrReadOnly, SelfOrAdmin
 from django.core.mail import send_mail
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_200_OK
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_200_OK, HTTP_204_NO_CONTENT
 from user_management.tasks import send_simple_mail, send_email_confirmation, send_password_reset
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.exceptions import ObjectDoesNotExist
@@ -52,6 +52,7 @@ def mail_confirmation_view(request):
         user = CommonUser.objects.get(confirmation_token=token)
         user.is_confirmed = True
         user.is_active = True
+        user.confirmation_token = ''
         user.save()
     except ObjectDoesNotExist:
         return Response('Your token is not valid', status=HTTP_400_BAD_REQUEST)
@@ -97,6 +98,7 @@ def reset_password(request):
         user = CommonUser.objects.get(password_reset_token=token)
         # mb password validation here ??
         user.set_password(new_password)
+        user.password_reset_token = ''
         user.save()
     except ObjectDoesNotExist:
         return Response('Token is not valid.', status=HTTP_400_BAD_REQUEST)
@@ -112,11 +114,16 @@ class RoleModelViewSet(ModelViewSet):
 # mb change two viewSet by one, but try t replace some flow to not to check permissions for creating
 # problem is that permission applied to entire class, but unauthorized users must have access to create method.
 class UserModelViewSet(ModelViewSet):
-    # mb it would be better if user can change only himself except admin user?? (to do)
-    permission_classes = [IsAuthenticated]
+    permission_classes = [SelfOrAdmin]
     queryset = CommonUser.objects.all()
-    serializer_class = CommonUserSerializer
+    serializer_class = SafeUserSerializer
     http_method_names = ['get', 'put', 'delete', 'head', 'patch']
+
+    def destroy(self, request, pk=None, *args, **kwargs):
+        user = CommonUser.objects.get(pk=pk)
+        user.is_active = False
+        user.save()
+        return Response(status=HTTP_204_NO_CONTENT)
 
 
 class RegistrationUserModelViewSet(ModelViewSet):

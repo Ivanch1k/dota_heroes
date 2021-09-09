@@ -16,4 +16,5 @@ urlpatterns = [
     path('mail_confirmation/', views.mail_confirmation_view),
     path('forgot_password/', views.forgot_password),
     path('reset_password/', views.reset_password),
+    path('change_password/', views.reset_password),
 ] + router.urls
