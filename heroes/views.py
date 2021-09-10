@@ -1,18 +1,13 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from heroes.models import Hero, ContrPicks
-from heroes.serializers import HeroSerializer, ContrPickSerializer
+from heroes.serializers import HeroInfoSerializer, HeroEditSerializer, ContrPickInfoSerializer, ContrPickEditSerializer
 from user_management.permissions import IsAdminOrReadOnly
+from rest_framework.permissions import SAFE_METHODS
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST
-from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 
-
-# Create your views here.
-class HeroModelViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
-    queryset = Hero.objects.all()
-    serializer_class = HeroSerializer
 
 def get_hero_and_contr_list(data):
     hero = Hero.objects.get(pk=data['hero'])
@@ -20,37 +15,34 @@ def get_hero_and_contr_list(data):
     return hero, contr_picks_list
 
 
+@api_view(['GET'])
+def filtered_heroes(request):
+    roles = request.data['roles']
+    types = request.data['types']
+    letter = request.data['letter']
+    start_or_end_with = Q(name__startswith=letter) | Q(name__endswith=letter)
+    heroes = Hero.objects.filter(Q(description__contains='stun'), start_or_end_with,
+                                 role__in=roles, type__in=types).distinct()
+    return Response(HeroEditSerializer(heroes, many=True).data)
+
+
+class HeroModelViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    queryset = Hero.objects.all()
+
+    def get_serializer_class(self):
+        if self.request.method in SAFE_METHODS:
+            return HeroInfoSerializer
+        else:
+            return HeroEditSerializer
+
+
 class ContrPicksModelViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
     queryset = ContrPicks.objects.all()
-    serializer_class = ContrPickSerializer
 
-    def create(self, request, *args, **kwargs):
-        try:
-            hero, contr_picks_list = get_hero_and_contr_list(request.data)
-        except ObjectDoesNotExist:
-            return Response('Hero or it contr picks doesnt exist', status=HTTP_400_BAD_REQUEST)
-
-        new_contrpick = ContrPicks.objects.create(
-            hero=hero
-        )
-        new_contrpick.contr_picks_list.add(*contr_picks_list)
-        new_contrpick.save()
-        return Response(ContrPickSerializer(new_contrpick).data)
-
-    def update(self, request, pk=None, *args, **kwargs):
-        try:
-            contr_picks = ContrPicks.objects.get(pk=pk)
-        except ObjectDoesNotExist:
-            return Response('ContrPicks object with given id doesnt exist', status=HTTP_400_BAD_REQUEST)
-        try:
-            hero, contr_picks_list = get_hero_and_contr_list(request.data)
-        except ObjectDoesNotExist:
-            return Response('Hero or it contr picks doesnt exist', status=HTTP_400_BAD_REQUEST)
-
-        contr_picks.hero = hero
-        contr_picks.contr_picks_list.clear()
-        contr_picks.contr_picks_list.add(*contr_picks_list)
-        contr_picks.save()
-
-        return Response(ContrPickSerializer(contr_picks).data)
+    def get_serializer_class(self):
+        if self.request.method in SAFE_METHODS:
+            return ContrPickInfoSerializer
+        else:
+            return ContrPickEditSerializer

@@ -41,3 +41,12 @@ def send_password_reset(email, token):
     msg = EmailMultiAlternatives("Password reset", html_content, dota_heroes.settings.EMAIL_HOST_USER, [email])
     msg.attach_alternative(html_content, "text/html")
     msg.send()
+
+
+@task
+def send_password_change(email, token):
+    html_template = get_template('email_password_change.html')
+    html_content = html_template.render({'token': token})
+    msg = EmailMultiAlternatives("Password changing", html_content, dota_heroes.settings.EMAIL_HOST_USER, [email])
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()

@@ -1,5 +1,6 @@
 from rest_framework.serializers import ModelSerializer
 from user_management.models import Role, CommonUser
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class RoleSerializer(ModelSerializer):

@@ -9,11 +9,12 @@ from user_management.permissions import IsAdminOrReadOnly, SelfOrAdmin
 from django.core.mail import send_mail
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_200_OK, HTTP_204_NO_CONTENT
-from user_management.tasks import send_simple_mail, send_email_confirmation, send_password_reset
+from user_management.tasks import send_simple_mail, send_email_confirmation, send_password_reset, send_password_change
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.request import QueryDict
 from datetime import datetime
+from rest_framework_simplejwt.views import TokenObtainPairView
 import hashlib
 
 
@@ -65,7 +66,7 @@ def mail_confirmation_view(request):
     })
 
 
-# to avoid duplication. Mb should be placed elsewhere
+# to avoid code duplication. Mb should be placed elsewhere
 def create_token(email):
     hash_token = hashlib.sha256()
     hash_token.update(bytes(email, 'utf-8'))
@@ -105,6 +106,17 @@ def reset_password(request):
     return Response(status=HTTP_200_OK)
 
 
+@api_view(['POST'])
+def change_password(request):
+    user = request.user
+    old_password = request.data['old_password']
+    if user.check_password(old_password):
+        user.set_password(request.data['new_password'])
+        user.save()
+        return Response(status=HTTP_200_OK)
+    return Response('Old password is not correct', status=HTTP_400_BAD_REQUEST)
+
+
 class RoleModelViewSet(ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     queryset = Role.objects.all()
@@ -142,16 +154,14 @@ class RegistrationUserModelViewSet(ModelViewSet):
 
         serializer = CommonUserSerializer(data=request.data)
         if not serializer.is_valid():
-            print(type(request.data))
             return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
-
-        print(type(request.data))
 
         user = serializer.create(serializer.data)
 
         token = create_token(user.email)
 
         user.confirmation_token = token
+        user.is_active = False
         user.save()
 
         send_email_confirmation.delay(serializer.data, token)

@@ -8,4 +8,3 @@ app = Celery('dota_heroes')
 
 app.config_from_object('django.conf:settings')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
-

@@ -62,7 +62,11 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    # allow to update last login when obtain token pair
+    'UPDATE_LAST_LOGIN': True
 }
+
+
 
 
 ROOT_URLCONF = 'dota_heroes.urls'
@@ -104,8 +108,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media/")
 
 
 # CELERY STUFF
-BROKER_URL = 'redis://localhost:6379'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+BROKER_URL = 'redis://redis:6379'
+CELERY_RESULT_BACKEND = 'redis://redis:6379'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
