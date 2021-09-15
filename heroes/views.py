@@ -1,18 +1,13 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from heroes.models import Hero, ContrPicks
+from user_management.models import CommonUser
 from heroes.serializers import HeroInfoSerializer, HeroEditSerializer, ContrPickInfoSerializer, ContrPickEditSerializer
 from user_management.permissions import IsAdminOrReadOnly
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Q
-
-
-def get_hero_and_contr_list(data):
-    hero = Hero.objects.get(pk=data['hero'])
-    contr_picks_list = [Hero.objects.get(pk=hero) for hero in data['contr_picks_list']]
-    return hero, contr_picks_list
 
 
 @api_view(['GET'])

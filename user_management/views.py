@@ -109,8 +109,13 @@ def reset_password(request):
 @api_view(['POST'])
 def change_password(request):
     user = request.user
-    old_password = request.data['old_password']
+    if 'old_password' in request.data and 'new_password' in request.data:
+        old_password = request.data['old_password']
+    else:
+        return Response(status=HTTP_400_BAD_REQUEST)
+
     if user.check_password(old_password):
+        # mb password validation here?
         user.set_password(request.data['new_password'])
         user.save()
         return Response(status=HTTP_200_OK)
@@ -132,9 +137,12 @@ class UserModelViewSet(ModelViewSet):
     http_method_names = ['get', 'put', 'delete', 'head', 'patch']
 
     def destroy(self, request, pk=None, *args, **kwargs):
-        user = CommonUser.objects.get(pk=pk)
-        user.is_active = False
-        user.save()
+        try:
+            user = CommonUser.objects.get(pk=pk)
+            user.is_active = False
+            user.save()
+        except ObjectDoesNotExist:
+            return Response(status=HTTP_400_BAD_REQUEST)
         return Response(status=HTTP_204_NO_CONTENT)
 
 
