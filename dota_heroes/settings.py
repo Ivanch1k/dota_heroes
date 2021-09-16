@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'heroes',
     'user_management',
+    'matches',
     'rest_framework_simplejwt',
     'drf_yasg',
 ]

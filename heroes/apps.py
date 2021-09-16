@@ -7,3 +7,4 @@ class HeroesConfig(AppConfig):
 
     def ready(self):
         import heroes.signals
+        import matches.signals
