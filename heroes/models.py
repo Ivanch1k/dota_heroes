@@ -1,6 +1,10 @@
 from django.db import models
 
 
+def hero_picture_directory_path(instance, filename):
+    return "heroes/{0}_{1}".format(instance.name, filename.split('/')[-1])
+
+
 # Create your models here.
 class Hero(models.Model):
     HERO_TYPE_CHOICES = [
@@ -11,12 +15,13 @@ class Hero(models.Model):
 
     name = models.CharField(max_length=50)
     description = models.TextField()
-    picture = models.ImageField(upload_to='heroes')
+    picture = models.ImageField(upload_to=hero_picture_directory_path)
     type = models.CharField(max_length=3, choices=HERO_TYPE_CHOICES, default='STR')
     role = models.ManyToManyField('user_management.Role', related_name='heroes')
 
     pick_rate = models.FloatField(default=0)
     win_rate = models.FloatField(default=0)
+    dota_api_id = models.IntegerField(default=None, null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -24,13 +29,19 @@ class Hero(models.Model):
     def update_pick_rate(self, total):
         matches_as_dire = self.matches_as_dire.count()
         matches_as_radiant = self.matches_as_radiant.count()
-        self.pick_rate = (matches_as_radiant + matches_as_dire) / total
+        if total > 0:
+            self.pick_rate = (matches_as_radiant + matches_as_dire) / total
+        else:
+            self.pick_rate = 0
         self.save()
 
     def update_win_rate(self, total):
         win_as_dire = self.matches_as_dire.filter(winner="D").count()
         win_as_radiant = self.matches_as_radiant.filter(winner="R").count()
-        self.win_rate = (win_as_radiant + win_as_dire) / total
+        if total > 0:
+            self.win_rate = (win_as_radiant + win_as_dire) / total
+        else:
+            self.win_rate = 0
         self.save()
 
 
