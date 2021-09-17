@@ -2,6 +2,7 @@ from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from heroes.models import Hero, ContrPicks
 from user_management.serializers import RoleSerializer
 from django.core.exceptions import ObjectDoesNotExist
+from user_management.models import Role
 
 
 # Here info serializers contain additional info and serves for SAFE methods, edit serializers otherwise contain only

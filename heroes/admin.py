@@ -10,4 +10,4 @@ class ContrPicksAdmin(admin.ModelAdmin):
 
 @admin.register(Hero)
 class HeroAdmin(admin.ModelAdmin):
-    pass
+    readonly_fields = ('id',)

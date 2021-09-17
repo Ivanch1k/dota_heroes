@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'heroes',
     'user_management',
     'matches',
+    'dota_api',
     'rest_framework_simplejwt',
     'drf_yasg',
 ]
