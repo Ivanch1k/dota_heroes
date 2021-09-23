@@ -20,9 +20,14 @@ import hashlib
 
 # test
 # Create your views here.
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def hello(request):
+    try:
+        print(request.test)
+    except Exception as e:
+        print(e)
+
     return Response('hi:)')
 
 

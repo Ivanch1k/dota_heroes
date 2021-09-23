@@ -1,6 +1,7 @@
 from celery.decorators import task
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import get_template
+import time
 import hashlib
 
 import dota_heroes.settings
@@ -50,3 +51,21 @@ def send_password_change(email, token):
     msg = EmailMultiAlternatives("Password changing", html_content, dota_heroes.settings.EMAIL_HOST_USER, [email])
     msg.attach_alternative(html_content, "text/html")
     msg.send()
+
+
+@task
+def sleep(seconds):
+    time.sleep(seconds)
+    print('Done')
+
+
+@task
+def add(a, b):
+    print(a + b)
+    return a + b
+
+
+@task
+def multiply(a, b):
+    print(a * b)
+    return a * b
