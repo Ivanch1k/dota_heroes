@@ -19,10 +19,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-import user_management.urls
-import heroes.urls
-import matches.urls
-import dota_api.urls
+
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -39,10 +36,11 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('user/', include(user_management.urls)),
-    path('heroes/', include(heroes.urls)),
-    path('matches/', include(matches.urls)),
-    path('dota_api/', include(dota_api.urls)),
+    path('user/', include('user_management.urls')),
+    path('heroes/', include('heroes.urls')),
+    path('matches/', include('matches.urls')),
+    path('dota_api/', include('dota_api.urls')),
+    path('chat/', include('chat.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
