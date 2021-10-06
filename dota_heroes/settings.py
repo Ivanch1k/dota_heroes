@@ -40,12 +40,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'drf_yasg',
+    'channels',
     'heroes',
     'user_management',
     'matches',
     'dota_api',
-    'rest_framework_simplejwt',
-    'drf_yasg',
+    'chat',
 ]
 
 MIDDLEWARE = [
@@ -56,7 +58,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'dota_heroes.middlewares.HiMiddleware',
+    # Custom middleware
+    # 'dota_heroes.middlewares.HiMiddleware',
 ]
 
 
@@ -93,7 +96,18 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'dota_heroes.wsgi.application'
+ASGI_APPLICATION = 'dota_heroes.asgi.application'
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [
+                ('127.0.0.1', 6379)
+            ]
+        }
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
